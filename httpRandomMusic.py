@@ -2,33 +2,40 @@
 
 # http随机音乐播放器
 # 给小爱音箱用于播放nas的音乐
+#作者郑羊羊
+#二RealWang
+#三就是本人,有没有错误不知道，反正能播放
 
 import os, random, urllib, posixpath, shutil, subprocess
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
+
 # 端口号
-port = 8080
+port = 65533
 
 # 存音乐的目录
-fileDir = '/volume1/music/github'
+fileDir = '/volume1/music'
 
 # 实时转码需要依赖ffmpeg的路径 如果为空就不转码
 ffmpeg = '/usr/bin/ffmpeg'
 
-fileList = None
-fileIndex = 0
-
 def updateFileList():
     global fileList
     global fileIndex
+    
     try:
         os.chdir(fileDir)
     except Exception as e:
         print(e)
         print('ERROR: 请检查目录是否存在或是否有权限访问')
         exit()
+    
     fileIndex = 0
-    fileList = list(filter(lambda x: x.lower().split('.')[-1] in ['flac','mp3','wav','aac','m4a'], os.listdir('.')))
+    fileList = []
+    for root, dirs, files in os.walk('.'):
+        for file in files:
+            if file.lower().split('.')[-1] in ['flac','mp3','wav','aac','m4a']:
+                fileList.append(os.path.join(root, file))
     fileList.sort(key=lambda x: os.path.getmtime(x))
     fileList.reverse()
     print(str(len(fileList)) + ' files')
@@ -117,7 +124,7 @@ class meHandler(BaseHTTPRequestHandler):
                 self.send_response(200)
                 if ffmpeg and path.lower().split('.')[-1] not in ['wav']:
                     self.send_header("Content-type", 'audio/wav')
-                    self.send_header("Accept-Ranges", "none")  # Ensure that the server doesn't support byte ranges
+                    self.send_header("Accept-Ranges", "none")  # 这行代码设置HTTP响应头，告诉客户端（如浏览器）不要请求视频或音频文件的特定部分（即不要进行范围请求）。这通常是为了防止视频或音频被部分下载和播放。
                     self.end_headers()
                     pipe = subprocess.Popen([ffmpeg, '-i', path, '-f', 'wav', '-'], stdout=subprocess.PIPE, bufsize=10 ** 8)
                     try:
@@ -127,7 +134,7 @@ class meHandler(BaseHTTPRequestHandler):
                         pipe.terminate()
                 else:
                     self.send_header("Content-type", 'audio/mpeg')
-                    self.send_header("Accept-Ranges", "none")  # Ensure that the server doesn't support byte ranges
+                    self.send_header("Accept-Ranges", "none")  # 这行代码设置HTTP响应头，告诉客户端（如浏览器）不要请求视频或音频文件的特定部分（即不要进行范围请求）。这通常是为了防止视频或音频被部分下载和播放。
                     with open(path, 'rb') as f:
                         self.send_header("Content-Length", str(os.fstat(f.fileno())[6]))
                         self.end_headers()
@@ -135,7 +142,6 @@ class meHandler(BaseHTTPRequestHandler):
             else:
                 self.send_response(404)
                 self.end_headers()
-
 
 updateFileList()
 HTTPServer(("", port), meHandler).serve_forever()

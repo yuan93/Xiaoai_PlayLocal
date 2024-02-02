@@ -2,8 +2,8 @@
 
 # http随机音乐播放器
 # 给小爱音箱用于播放nas的音乐
-#作者郑羊羊
-#二RealWang
+#一zanjie1999
+#二wangrui1573
 #三就是本人,有没有错误不知道，反正能播放
 
 import os, random, urllib, posixpath, shutil, subprocess
